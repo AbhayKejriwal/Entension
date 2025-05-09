@@ -1,0 +1,349 @@
+// The module 'vscode' contains the VS Code extensibility API
+// Import the module and reference it with the alias vscode in your code below
+import * as vscode from 'vscode';
+import { exec } from 'child_process';
+import { JiraViewProvider } from './providers/jiraViewProvider';
+import { CoderViewProvider } from './providers/coderViewProvider';
+import { JenkinsViewProvider } from './providers/jenkinsViewProvider';
+
+	private _getHtmlForWebview(webview: vscode.Webview): string {
+		// Get the local path to main script run in the webview
+		const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'out', 'webview', 'main.js'));
+		
+		// Use a nonce to only allow specific scripts to be run
+		const nonce = getNonce();
+
+		return `<!DOCTYPE html>
+		<html lang="en">
+		<head>
+			<meta charset="UTF-8">
+			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+			<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
+			<title>CLI Commander</title>
+			<style>
+				body {
+					padding: 10px;
+					color: var(--vscode-foreground);
+					font-family: var(--vscode-font-family);
+				}
+				.container {
+					display: flex;
+					flex-direction: column;
+					gap: 10px;
+				}
+				.input-container {
+					display: flex;
+					gap: 5px;
+				}
+				input {
+					padding: 6px;
+					border: 1px solid var(--vscode-input-border);
+					background-color: var(--vscode-input-background);
+					color: var(--vscode-input-foreground);
+					flex: 1;
+				}
+				button {
+					padding: 6px 12px;
+					background-color: var(--vscode-button-background);
+					color: var(--vscode-button-foreground);
+					border: none;
+					cursor: pointer;
+					display: flex;
+					align-items: center;
+					justify-content: center;
+				}
+				button:hover {
+					background-color: var(--vscode-button-hoverBackground);
+				}
+				button:disabled {
+					opacity: 0.5;
+					cursor: not-allowed;
+				}
+				.output-container {
+					display: flex;
+					flex-direction: column;
+				}
+				.output-header {
+					display: flex;
+					justify-content: space-between;
+					align-items: center;
+					font-size: 12px;
+					color: var(--vscode-descriptionForeground);
+					margin-bottom: 5px;
+				}
+				.output {
+					padding: 10px;
+					background-color: var(--vscode-editor-background);
+					border: 1px solid var(--vscode-panel-border);
+					overflow: auto;
+					max-height: 300px;
+					border-radius: 3px;
+				}
+				.output-content {
+					white-space: pre-wrap;
+					font-family: var(--vscode-editor-font-family);
+					font-size: var(--vscode-editor-font-size);
+				}
+				.loading {
+					display: inline-block;
+					width: 16px;
+					height: 16px;
+					border: 2px solid var(--vscode-button-background);
+					border-radius: 50%;
+					border-top-color: transparent;
+					animation: spin 1s linear infinite;
+				}
+				@keyframes spin {
+					to { transform: rotate(360deg); }
+				}
+				.error {
+					color: var(--vscode-errorForeground);
+				}
+				.success {
+					color: var(--vscode-terminal-ansiGreen);
+				}
+				.history-item {
+					cursor: pointer;
+					padding: 3px;
+					border-radius: 3px;
+					margin-bottom: 2px;
+				}
+				.history-item:hover {
+					background-color: var(--vscode-list-hoverBackground);
+				}
+			</style>
+		</head>
+		<body>
+			<div class="container">
+				<h3>CLI Commander</h3>
+				<p>Enter a command to execute:</p>
+				<div class="input-container">
+					<input type="text" id="command-input" placeholder="Enter CLI command">
+					<button id="run-button">Generate</button>
+				</div>
+				
+				<div class="output-container">
+					<div class="output-header">
+						<span id="status-text">Ready</span>
+						<span id="loading-indicator" style="display:none"><div class="loading"></div></span>
+					</div>
+					<div class="output">
+						<div class="output-content" id="output-content">Type a command and press Generate or Enter to execute it.</div>
+					</div>
+				</div>
+				
+				<div style="margin-top: 10px">
+					<p style="font-size: 12px; margin: 5px 0">Recent commands:</p>
+					<div id="command-history"></div>
+				</div>
+			</div>
+			<script nonce="${nonce}">
+				const vscode = acquireVsCodeApi();
+				const commandInput = document.getElementById('command-input');
+				const runButton = document.getElementById('run-button');
+				const outputContent = document.getElementById('output-content');
+				const statusText = document.getElementById('status-text');
+				const loadingIndicator = document.getElementById('loading-indicator');
+				const commandHistory = document.getElementById('command-history');
+				
+				// Get previous state
+				const previousState = vscode.getState() || { history: [] };
+				let commandHistoryItems = previousState.history || [];
+				
+				// Update command history
+				function updateCommandHistory() {
+					commandHistory.innerHTML = '';
+					commandHistoryItems.slice(0, 5).forEach(cmd => {
+						const historyItem = document.createElement('div');
+						historyItem.className = 'history-item';
+						historyItem.textContent = cmd;
+						historyItem.title = 'Click to use this command';
+						historyItem.addEventListener('click', () => {
+							commandInput.value = cmd;
+							commandInput.focus();
+						});
+						commandHistory.appendChild(historyItem);
+					});
+					
+					// Update state
+					vscode.setState({ history: commandHistoryItems });
+				}
+				
+				// Init history
+				updateCommandHistory();
+				
+				// Send command to extension
+				runButton.addEventListener('click', () => {
+					const command = commandInput.value.trim();
+					if (command) {
+						// Disable button and show loading
+						runButton.disabled = true;
+						loadingIndicator.style.display = 'block';
+						statusText.textContent = 'Executing...';
+						outputContent.textContent = 'Executing command: ' + command;
+						
+						// Save to history (avoid duplicates)
+						if (!commandHistoryItems.includes(command)) {
+							commandHistoryItems.unshift(command);
+							if (commandHistoryItems.length > 10) {
+								commandHistoryItems.pop();
+							}
+							updateCommandHistory();
+						}
+						
+						// Send message
+						vscode.postMessage({
+							command: 'executeCommand',
+							text: command
+						});
+					}
+				});
+
+				// Handle Enter key on input
+				commandInput.addEventListener('keydown', (e) => {
+					if (e.key === 'Enter') {
+						runButton.click();
+					}
+				});
+				
+				// Focus input field on load
+				commandInput.focus();
+
+				// Listen for messages from the extension
+				window.addEventListener('message', event => {
+					const message = event.data;
+					switch (message.command) {
+						case 'commandStarted':
+							// Already handled above
+							break;
+							
+						case 'commandResult':
+							runButton.disabled = false;
+							loadingIndicator.style.display = 'none';
+							statusText.textContent = 'Completed';
+							outputContent.textContent = message.result || 'Command executed successfully (no output)';
+							outputContent.className = 'output-content success';
+							break;
+							
+						case 'commandError':
+							runButton.disabled = false;
+							loadingIndicator.style.display = 'none';
+							statusText.textContent = 'Error';
+							outputContent.textContent = 'Error: ' + message.error;
+							outputContent.className = 'output-content error';
+							break;
+					}
+				});
+			</script>
+		</body>
+		</html>`;
+	}
+
+	private _executeCommand(commandText: string) {
+		if (!this._view) {
+			return;
+		}
+
+		// Show loading indicator
+		this._view.webview.postMessage({
+			command: 'commandStarted',
+			text: commandText
+		});
+
+		// Get path to the Python script
+		const scriptPath = join(this._extensionUri.fsPath, 'src', 'script', 'dummy_script.py');
+
+		// Build the command to execute the Python script with the input as arguments
+		const pythonCommand = `python "${scriptPath}" ${commandText}`;
+		console.log(`Executing Python command: ${pythonCommand}`);
+		
+		// Execute the command
+		exec(pythonCommand, { timeout: 30000 }, (error, stdout, stderr) => {
+			if (error) {
+				// Handle error case
+				this._view?.webview.postMessage({
+					command: 'commandError',
+					error: error.message
+				});
+				
+				// Also log to console for debugging
+				console.error(`Error executing Python script: ${error.message}`);
+				
+				// Show error notification
+				vscode.window.showErrorMessage(`Failed to run Python script: ${error.message}`);
+				return;
+			}
+
+			const output = stdout || stderr;
+			
+			// Send the result back to the webview
+			this._view?.webview.postMessage({
+				command: 'commandResult',
+				result: output
+			});
+			
+			// Log successful execution
+			console.log(`Python script executed successfully with input: ${commandText}`);
+			
+			// Show success notification
+			vscode.window.showInformationMessage(`Python script executed successfully with input: ${commandText}`);
+		});
+	}
+}
+
+// This method is called when your extension is activated
+// Your extension is activated the very first time the command is executed
+export function activate(context: vscode.ExtensionContext) {
+	console.log('Congratulations, your extension "CLI Commander" is now active!');
+
+	// Register the CLI Commander webview provider
+	const cliCommanderViewProvider = new CliCommanderViewProvider(context.extensionUri);
+	context.subscriptions.push(
+		vscode.window.registerWebviewViewProvider(CliCommanderViewProvider.viewType, cliCommanderViewProvider)
+	);
+
+	// Register commands
+	const helloCommand = vscode.commands.registerCommand('agents.helloWorld', () => {
+		vscode.window.showInformationMessage('Hello World from CLI Commander!');
+	});
+
+	const openCliCommanderCommand = vscode.commands.registerCommand('agents.openCliCommanderView', () => {
+		vscode.commands.executeCommand('cli-commander-view.focus');
+	});
+
+	const executeCommandCommand = vscode.commands.registerCommand('agents.executeCommand', async () => {
+		const commandText = await vscode.window.showInputBox({
+			placeHolder: 'Enter a CLI command to execute',
+			prompt: 'Enter a command to execute in the terminal'
+		});
+
+		if (commandText) {
+			exec(commandText, (error, stdout, stderr) => {
+				if (error) {
+					vscode.window.showErrorMessage(`Error executing command: ${error.message}`);
+					return;
+				}
+				const output = stdout || stderr;
+				const outputChannel = vscode.window.createOutputChannel('CLI Commander');
+				outputChannel.clear();
+				outputChannel.append(output);
+				outputChannel.show();
+			});
+		}
+	});
+
+	context.subscriptions.push(helloCommand, openCliCommanderCommand, executeCommandCommand);
+}
+
+// This method is called when your extension is deactivated
+export function deactivate() {}
+
+// Helper function to generate a nonce
+function getNonce() {
+	let text = '';
+	const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+	for (let i = 0; i < 32; i++) {
+		text += possible.charAt(Math.floor(Math.random() * possible.length));
+	}
+	return text;
+}

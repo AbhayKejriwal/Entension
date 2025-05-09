@@ -1,0 +1,136 @@
+{
+  "name": "agents",
+  "displayName": "Agents Extension",
+  "description": "VS Code extension with multiple agent sidebars for Jira, code documentation, and Jenkins automation",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Agents Extension",
+      "properties": {
+        "jiraStoryBot.scriptPath": {
+          "type": "string",
+          "default": "C:/Users/Abhay/Downloads/dummy_script.py",
+          "description": "Absolute path to the Python script for Jira Story Bot. If not set, uses the default script."
+        },
+        "coderBot.scriptPath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to the Python script for Coder & Documentation Bot. If not set, uses the default script."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "agents.helloWorld",
+        "title": "Hello World"
+      },
+      {
+        "command": "agents.openJiraView",
+        "title": "Open Jira Story Bot",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "agents.openCoderView",
+        "title": "Open Coder and Documentation Bot",
+        "icon": "$(code)"
+      },
+      {
+        "command": "agents.openJenkinsView",
+        "title": "Open Jenkins Agent",
+        "icon": "$(server-process)"
+      },
+      {
+        "command": "agents.executeCommand",
+        "title": "Execute CLI Command"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "jira-sidebar",
+          "title": "Jira Story Bot",
+          "icon": "resources/icons/jira.svg"
+        },
+        {
+          "id": "coder-sidebar",
+          "title": "Coder & Documentation",
+          "icon": "resources/icons/coder.svg"
+        },
+        {
+          "id": "jenkins-sidebar",
+          "title": "Jenkins Agent",
+          "icon": "resources/icons/jenkins.svg"
+        }
+      ]
+    },
+    "views": {
+      "jira-sidebar": [
+        {
+          "id": "jira-view",
+          "name": "Jira Story Bot",
+          "type": "webview"
+        }
+      ],
+      "coder-sidebar": [
+        {
+          "id": "coder-view",
+          "name": "Coder & Documentation Bot",
+          "type": "webview"
+        }
+      ],
+      "jenkins-sidebar": [
+        {
+          "id": "jenkins-view",
+          "name": "Jenkins Agent",
+          "type": "webview"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "agents.openJiraView",
+          "when": "view == jira-view",
+          "group": "navigation"
+        },
+        {
+          "command": "agents.openCoderView",
+          "when": "view == coder-view",
+          "group": "navigation"
+        },
+        {
+          "command": "agents.openJenkinsView",
+          "when": "view == jenkins-view",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.100.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@typescript-eslint/eslint-plugin": "^8.31.1",
+    "@typescript-eslint/parser": "^8.31.1",
+    "eslint": "^9.25.1",
+    "typescript": "^5.8.3",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}
