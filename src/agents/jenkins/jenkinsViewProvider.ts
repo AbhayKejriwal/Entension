@@ -66,13 +66,8 @@ export class JenkinsViewProvider implements vscode.WebviewViewProvider {
                     break;
                       case 'openBuildInBrowser':
                     this._openBuildInBrowser(message.jobPath, message.buildNumber);
-                    break;
-                      case 'testConnection':
+                    break;                case 'testConnection':
                     this._testConnection();
-                    break;
-                    
-                case 'retryBuild':
-                    this._retryBuild(message.jobPath, message.buildNumber);
                     break;
             }
         });
@@ -220,21 +215,13 @@ export class JenkinsViewProvider implements vscode.WebviewViewProvider {
             if (buildInfo.estimatedDuration) {
                 const estimatedMinutes = buildInfo.estimatedDuration / 60000;
                 statusMessage += `\n- Estimated Duration: ${estimatedMinutes.toFixed(2)} minutes`;
-            }
-              // Add a link to open in browser
+            }            // Add a link to open in browser
             statusMessage += `\n\nClick "Open in Browser" below to view in Jenkins.`;
-            
-            // Add info about retrying if the build failed
-            const canRetry = buildInfo.result === 'FAILURE' || buildInfo.result === 'ABORTED';
-            if (canRetry) {
-                statusMessage += `\nYou can also retry this failed build.`;
-            }
             
             this._sendStatusUpdate('success', statusMessage, {
                 jobPath,
                 buildNumber,
-                hasLink: true,
-                canRetry
+                hasLink: true
             });
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 
@@ -340,38 +327,7 @@ export class JenkinsViewProvider implements vscode.WebviewViewProvider {
         const buildUrl = `${this._jenkinsBaseUrl}/${jobPath}/${buildNumber}`;
         vscode.env.openExternal(vscode.Uri.parse(buildUrl));
     }
-    
-    /**
-     * Retry a failed build
-     */
-    private async _retryBuild(jobPath: string, buildNumber: string): Promise<void> {
-        try {
-            this._sendStatusUpdate('running', 'Preparing to retry build...');
-            
-            // First, get the build info to check if it's failed
-            const buildInfo = await this._makeJenkinsRequest<any>(`${jobPath}/${buildNumber}/api/json`);
-            
-            // Only retry if the build failed
-            if (buildInfo.result !== 'FAILURE' && buildInfo.result !== 'ABORTED') {
-                this._sendStatusUpdate('error', `Cannot retry build that has not failed. Current status: ${buildInfo.result}`);
-                return;
-            }
-            
-            // Use the rebuild API endpoint
-            await this._makeJenkinsRequest<any>(`${jobPath}/${buildNumber}/rebuild`, {
-                method: 'POST'
-            });
-            
-            this._sendStatusUpdate('success', 'Build retry initiated successfully.');
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 
-                axios.isAxiosError(error) && error.response ? 
-                    `Server returned ${error.response.status}: ${error.response.statusText}` : 
-                    String(error);
-                    
-            this._sendStatusUpdate('error', `Failed to retry build: ${errorMessage}`);
-        }
-    }
+      // Retry build feature removed as per requirements
     
     private _sendStatusUpdate(status: 'running' | 'success' | 'error', message: string, data?: any): void {
         if (this._view) {

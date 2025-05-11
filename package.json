@@ -77,7 +77,7 @@
         {
           "id": "coder-sidebar",
           "title": "Dev Bot",
-          "icon": "resources/icons/coder.svg"
+          "icon": "resources/icons/dev.svg"
         },
         {
           "id": "jenkins-sidebar",
