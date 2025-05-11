@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { join } from 'path';
 import { exec } from 'child_process';
-import { getNonce, ProcessStatus } from '../../common/utils';
+import { getNonce, ProcessStatus, loadHtmlTemplate } from '../../common/utils';
 import { ProcessManager } from '../../common/processManager';
 
 /**
@@ -43,292 +43,17 @@ export class JiraViewProvider implements vscode.WebviewViewProvider {
 			},
 			undefined,
 			[]);
-		
-		// Send current configuration to the webview
-		this._sendConfigUpdate();
-	}
-
-	private _getHtmlForWebview(webview: vscode.Webview): string {
+				// No need to send config update anymore
+	}	private _getHtmlForWebview(webview: vscode.Webview): string {
 		// Use a nonce to only allow specific scripts to be run
 		const nonce = getNonce();
-
-		return `<!DOCTYPE html>
-		<html lang="en">
-		<head>
-			<meta charset="UTF-8">
-			<meta name="viewport" content="width=device-width, initial-scale=1.0">
-			<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
-			<title>Jira Story Bot</title>			<style>
-				body {
-					padding: 10px;
-					color: var(--vscode-foreground);
-					font-family: var(--vscode-font-family);
-				}
-				.container {
-					display: flex;
-					flex-direction: column;
-					gap: 12px;
-				}
-				.section {
-					background-color: var(--vscode-editor-background);
-					border-radius: 6px;
-					padding: 12px;
-					border: 1px solid var(--vscode-widget-border);
-				}
-				.section-header {
-					display: flex;
-					justify-content: space-between;
-					align-items: center;
-					margin-bottom: 10px;
-				}
-				.section-title {
-					font-weight: 600;
-					font-size: 14px;
-					color: var(--vscode-editor-foreground);
-				}
-				.collapsible {
-					background: none;
-					border: none;
-					cursor: pointer;
-					font-size: 12px;
-					color: var(--vscode-textLink-foreground);
-					padding: 0;
-				}
-				.collapsible:hover {
-					text-decoration: underline;
-				}
-				.collapsed {
-					display: none;
-				}
-				.input-container {
-					display: flex;
-					gap: 5px;
-				}
-				.form-field {
-					margin-bottom: 10px;
-				}
-				.form-field label {
-					display: block;
-					margin-bottom: 4px;
-					font-size: 12px;
-					color: var(--vscode-disabledForeground);
-				}
-				input, textarea {
-					padding: 6px;
-					border: 1px solid var(--vscode-input-border);
-					background-color: var(--vscode-input-background);
-					color: var(--vscode-input-foreground);
-					width: 100%;
-					box-sizing: border-box;
-					border-radius: 3px;
-				}
-				input:focus, textarea:focus {
-					outline: 1px solid var(--vscode-focusBorder);
-				}
-				.input-file {
-					display: flex;
-					align-items: center;
-				}
-				button {
-					padding: 6px 12px;
-					background-color: var(--vscode-button-background);
-					color: var(--vscode-button-foreground);
-					border: none;
-					border-radius: 3px;
-					cursor: pointer;
-					display: flex;
-					align-items: center;
-					justify-content: center;
-					font-size: 13px;
-				}
-				.btn-small {
-					padding: 4px 8px;
-					font-size: 12px;
-				}
-				.btn-secondary {
-					background-color: var(--vscode-button-secondaryBackground);
-					color: var(--vscode-button-secondaryForeground);
-				}
-				button:hover {
-					background-color: var(--vscode-button-hoverBackground);
-				}
-				.btn-secondary:hover {
-					background-color: var(--vscode-button-secondaryHoverBackground);
-				}
-				button:disabled {
-					opacity: 0.5;
-					cursor: not-allowed;
-				}
-				.output-container {
-					display: flex;
-					flex-direction: column;
-				}
-				.output-header {
-					display: flex;
-					justify-content: space-between;
-					align-items: center;
-					font-size: 12px;
-					color: var(--vscode-descriptionForeground);
-					margin-bottom: 5px;
-				}
-				.output {
-					padding: 10px;
-					background-color: var(--vscode-editor-background);
-					border: 1px solid var(--vscode-panel-border);
-					overflow: auto;
-					max-height: 300px;
-					border-radius: 3px;
-					font-size: 13px;
-				}
-				.output-content {
-					white-space: pre-wrap;
-					font-family: var(--vscode-editor-font-family);
-					font-size: var(--vscode-editor-font-size);
-				}
-				.loading {
-					display: inline-block;
-					width: 16px;
-					height: 16px;
-					border: 2px solid var(--vscode-button-background);
-					border-radius: 50%;
-					border-top-color: transparent;
-					animation: spin 1s linear infinite;
-				}
-				@keyframes spin {
-					to { transform: rotate(360deg); }
-				}
-				.error {
-					color: var(--vscode-errorForeground);
-				}
-				.success {
-					color: var(--vscode-terminal-ansiGreen);
-				}
-				.actions {
-					display: flex;
-					justify-content: space-between;
-					align-items: center;
-					gap: 8px;
-				}
-				.right-actions {
-					margin-left: auto;
-				}				.icon-button {
-					background: none;
-					border: none;
-					padding: 4px;
-					cursor: pointer;
-					font-size: 16px;
-					color: var(--vscode-editor-foreground);
-					opacity: 0.7;
-					border-radius: 3px;
-					display: flex;
-					align-items: center;
-					justify-content: center;
-				}
-				.icon-button:hover {
-					opacity: 1;
-					background-color: var(--vscode-toolbar-hoverBackground);
-				}
-			</style>
-		</head>		<body>
-			<div class="container">
-				<div class="section">					<div class="section-header">
-						<h3 class="section-title">Jira Story Bot</h3>
-						<button class="icon-button" id="settings-button" title="Open Settings">⚙️</button>
-					</div>
-					<p>Generate story details by entering the requirements of your epic:</p>
-					<div class="input-container">
-						<input type="text" id="command-input" placeholder="Enter epic requirements">
-						<button id="run-button">Generate</button>
-					</div>
-				</div>
-				
-				<div class="section">
-					<div class="section-header">
-						<span class="section-title">Output</span>
-						<div class="actions">
-							<span id="status-text">Ready</span>
-							<span id="loading-indicator" style="display:none"><div class="loading"></div></span>
-						</div>
-					</div>
-					<div class="output">
-						<div class="output-content" id="output-content">Enter your epic requirements and click Generate to create Jira stories.</div>
-					</div>
-				</div>
-				</div>
-			</div>			<script nonce="${nonce}">
-				const vscode = acquireVsCodeApi();				const commandInput = document.getElementById('command-input');
-				const runButton = document.getElementById('run-button');
-				const outputContent = document.getElementById('output-content');
-				const statusText = document.getElementById('status-text');
-				const loadingIndicator = document.getElementById('loading-indicator');
-				const settingsButton = document.getElementById('settings-button');
-				
-				// Open settings when gear icon is clicked
-				settingsButton.addEventListener('click', () => {
-					vscode.postMessage({
-						command: 'openSettings'
-					});
-				});
-				
-				// Send command to extension
-				runButton.addEventListener('click', () => {
-					const command = commandInput.value.trim();
-					if (command) {
-						// Disable button and show loading
-						runButton.disabled = true;
-						loadingIndicator.style.display = 'block';
-						statusText.textContent = 'Executing...';
-						outputContent.textContent = 'Executing command: ' + command;
-						
-						// Send message
-						vscode.postMessage({
-							command: 'executeCommand',
-							text: command
-						});
-					}
-				});
-
-				// Handle Enter key on input
-				commandInput.addEventListener('keydown', (e) => {
-					if (e.key === 'Enter') {
-						runButton.click();
-					}
-				});
-				
-				// Focus input field on load
-				commandInput.focus();
-				
-				// Listen for messages from the extension
-				window.addEventListener('message', event => {
-					const message = event.data;
-					switch (message.command) {
-						case 'processUpdate':
-							if (message.status === 'running') {
-								// Process is still running
-								runButton.disabled = true;
-								loadingIndicator.style.display = 'block';
-								statusText.textContent = 'Running...';
-								outputContent.textContent = message.message || 'Generating story details...';
-							} else if (message.status === 'success') {
-								// Process completed successfully
-								runButton.disabled = false;
-								loadingIndicator.style.display = 'none';
-								statusText.textContent = 'Completed';
-								outputContent.textContent = message.message || 'Story details generated successfully.';
-							} else if (message.status === 'error') {
-								// Process encountered an error
-								runButton.disabled = false;
-								loadingIndicator.style.display = 'none';
-								statusText.textContent = 'Error';
-								outputContent.textContent = 'Error: ' + (message.message || 'Unknown error');
-							}
-							break;						// No need for configUpdate case anymore
-							break;
-					}
-				});
-			</script>
-		</body>
-		</html>`;
+		const templatePath = join(this._extensionUri.fsPath, 'src', 'agents', 'jira', 'webview', 'jiraView.html');
+		
+		// Load template and replace placeholders
+		return loadHtmlTemplate(templatePath, {
+			nonce: nonce,
+			cspSource: webview.cspSource
+		});
 	}
 	private async _executeCommand(commandText: string) {
 		if (!this._view) {
@@ -393,8 +118,10 @@ export class JiraViewProvider implements vscode.WebviewViewProvider {
 				vscode.window.showErrorMessage(`Failed to generate story details: ${status.message}`);
 			}
 		});
-	}	// Configuration methods removed - now using settings gear icon
-
+	}
+	/**
+	 * _sendConfigUpdate method was removed since we now use the VS Code settings UI directly
+	 */
 	/**
 	 * Sends a process status update to the webview
 	 */

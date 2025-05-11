@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src {{cspSource}}; script-src 'nonce-{{nonce}}';">
+    <title>Jenkins Agent</title>
+    <style>
+        body {
+            padding: 10px;
+            color: var(--vscode-foreground);
+            font-family: var(--vscode-font-family);
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .section {
+            background-color: var(--vscode-editor-background);
+            border-radius: 6px;
+            padding: 12px;
+            border: 1px solid var(--vscode-widget-border);
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        .section-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--vscode-editor-foreground);
+            margin: 0;
+        }
+        .input-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .form-field {
+            margin-bottom: 10px;
+        }
+        .form-field label {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 12px;
+            color: var(--vscode-disabledForeground);
+        }
+        select, input {
+            padding: 6px;
+            border: 1px solid var(--vscode-input-border);
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            width: 100%;
+            box-sizing: border-box;
+            border-radius: 3px;
+        }
+        select:focus, input:focus {
+            outline: 1px solid var(--vscode-focusBorder);
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 5px 0;
+        }
+        .checkbox-item input {
+            margin: 0;
+            width: auto;
+        }
+        .checkbox-item label {
+            font-size: 13px;
+        }
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        button {
+            padding: 6px 12px;
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+        .btn-secondary {
+            background-color: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+        }
+        button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }        .btn-secondary:hover {
+            background-color: var(--vscode-button-secondaryHoverBackground);
+        }
+        .btn-primary {
+            padding: 6px 12px;
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+        .btn-primary:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--vscode-button-background);
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .icon-button {
+            background-color: transparent;
+            border: none;
+            padding: 0;
+            margin-left: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--vscode-descriptionForeground);
+            opacity: 0.4;
+            display: inline-flex;
+            vertical-align: middle;
+        }
+        .icon-button:hover {
+            opacity: 0.8;
+        }
+        .output-status {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .output-content {
+            white-space: pre-wrap;
+            font-family: var(--vscode-editor-font-family);
+            font-size: var(--vscode-editor-font-size);
+            font-weight: 600;
+        }
+        .status-running .output-content {
+            color: var(--vscode-activityBarBadge-background);
+        }
+        .status-success .output-content {
+            color: var(--vscode-terminal-ansiGreen);
+        }
+        .status-error .output-content {
+            color: var(--vscode-errorForeground);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="section">            <div class="section-header">
+                <h3 class="section-title">Jenkins Agent 
+                    <span class="icon-button" id="test-connection-button" title="Test Jenkins Connection">🔌</span>
+                    <span class="icon-button" id="refresh-button" title="Refresh Jobs">🔄</span>
+                    <span class="icon-button" id="settings-button" title="Open Settings">⚙️</span>
+                </h3>
+            </div>
+            
+            <div class="input-container">
+                <div class="form-field">
+                    <label for="job-path">Job Path/URL:</label>
+                    <select id="job-path">
+                        <option value="">Select a job...</option>
+                    </select>
+                </div>
+                
+                <div class="form-field">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="last-build-check">
+                        <label for="last-build-check">Use lastBuild</label>
+                    </div>
+                    <label for="build-number">Build Number:</label>
+                    <input type="text" id="build-number" placeholder="Enter build number">
+                </div>
+                
+                <div class="actions">
+                    <button id="get-status-button">Get Build Status</button>
+                    <button id="get-logs-button" class="btn-secondary">Get Build Logs</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-header">
+                <div class="actions">
+                    <span id="loading-indicator" style="display:none"><div class="loading"></div></span>
+                </div>
+            </div>
+            <div class="output">
+                <div class="output-status" id="output-status">
+                    <div class="output-content" id="output-content">Ready: Select a job and build number to get started.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script nonce="{{nonce}}">
+        const vscode = acquireVsCodeApi();
+        
+        // Elements
+        const jobPathSelect = document.getElementById('job-path');
+        const lastBuildCheck = document.getElementById('last-build-check');
+        const buildNumberInput = document.getElementById('build-number');
+        const getStatusButton = document.getElementById('get-status-button');
+        const getLogsButton = document.getElementById('get-logs-button');        const outputContent = document.getElementById('output-content');
+        const outputStatus = document.getElementById('output-status');        const loadingIndicator = document.getElementById('loading-indicator');
+        const settingsButton = document.getElementById('settings-button');
+        const refreshButton = document.getElementById('refresh-button');
+        const testConnectionButton = document.getElementById('test-connection-button');
+        
+        // Settings button click handler
+        settingsButton.addEventListener('click', () => {
+            vscode.postMessage({
+                command: 'openJenkinsSettings'
+            });
+        });
+        
+        // Refresh button click handler
+        refreshButton.addEventListener('click', () => {
+            vscode.postMessage({
+                command: 'refreshJobs'
+            });
+            outputContent.textContent = 'Refreshing job list...';
+            outputStatus.className = 'output-status status-running';
+        });
+        
+        // Test connection button click handler
+        testConnectionButton.addEventListener('click', () => {
+            vscode.postMessage({
+                command: 'testConnection'
+            });
+            outputContent.textContent = 'Testing connection to Jenkins server...';
+            outputStatus.className = 'output-status status-running';
+        });
+        
+        // Last Build checkbox change handler
+        lastBuildCheck.addEventListener('change', () => {
+            buildNumberInput.disabled = lastBuildCheck.checked;
+            if (lastBuildCheck.checked) {
+                buildNumberInput.value = '';
+            }
+        });
+        
+        // Get Status button click handler
+        getStatusButton.addEventListener('click', () => {
+            const jobPath = jobPathSelect.value;
+            const isLastBuild = lastBuildCheck.checked;
+            const buildNumber = isLastBuild ? 'lastBuild' : buildNumberInput.value;
+            
+            if (!jobPath) {
+                outputContent.textContent = 'Error: Please select a job';
+                outputStatus.className = 'output-status status-error';
+                return;
+            }
+            
+            if (!isLastBuild && !buildNumber) {
+                outputContent.textContent = 'Error: Please enter a build number or select lastBuild';
+                outputStatus.className = 'output-status status-error';
+                return;
+            }
+            
+            // Disable buttons and show loading
+            getStatusButton.disabled = true;
+            getLogsButton.disabled = true;
+            loadingIndicator.style.display = 'block';
+            outputContent.textContent = 'Fetching build status...';
+            outputStatus.className = 'output-status status-running';
+            
+            // Send message to extension
+            vscode.postMessage({
+                command: 'getBuildStatus',
+                jobPath: jobPath,
+                buildNumber: buildNumber
+            });
+        });
+        
+        // Get Logs button click handler
+        getLogsButton.addEventListener('click', () => {
+            const jobPath = jobPathSelect.value;
+            const isLastBuild = lastBuildCheck.checked;
+            const buildNumber = isLastBuild ? 'lastBuild' : buildNumberInput.value;
+            
+            if (!jobPath) {
+                outputContent.textContent = 'Error: Please select a job';
+                outputStatus.className = 'output-status status-error';
+                return;
+            }
+            
+            if (!isLastBuild && !buildNumber) {
+                outputContent.textContent = 'Error: Please enter a build number or select lastBuild';
+                outputStatus.className = 'output-status status-error';
+                return;
+            }
+            
+            // Disable buttons and show loading
+            getStatusButton.disabled = true;
+            getLogsButton.disabled = true;
+            loadingIndicator.style.display = 'block';
+            outputContent.textContent = 'Preparing to download build logs...';
+            outputStatus.className = 'output-status status-running';
+            
+            // Send message to extension
+            vscode.postMessage({
+                command: 'getBuildLogs',
+                jobPath: jobPath,
+                buildNumber: buildNumber
+            });
+        });
+        
+        // Listen for messages from the extension
+        window.addEventListener('message', event => {
+            const message = event.data;
+            switch (message.command) {
+                case 'updateJobs':                    // Update job list
+                    jobPathSelect.innerHTML = '<option value="">Select a job...</option>';
+                    
+                    if (message.jobs && message.jobs.length > 0) {
+                        message.jobs.forEach(job => {
+                            const option = document.createElement('option');
+                            option.value = job.path;
+                            option.textContent = job.name || job.path;
+                            jobPathSelect.appendChild(option);
+                        });
+                        
+                        // Enable buttons if we have jobs
+                        getStatusButton.disabled = false;
+                        getLogsButton.disabled = false;
+                    } else {
+                        // Show a message if no jobs are available
+                        outputContent.textContent = 'No Jenkins jobs found. Please configure job paths in settings or click the refresh button to fetch jobs from Jenkins.';
+                        outputStatus.className = 'output-status status-error';
+                        
+                        // Disable buttons if no jobs
+                        getStatusButton.disabled = true;
+                        getLogsButton.disabled = true;
+                    }
+                    break;
+                    
+                case 'processUpdate':
+                    if (message.status === 'running') {
+                        // Process is still running
+                        getStatusButton.disabled = true;
+                        getLogsButton.disabled = true;
+                        loadingIndicator.style.display = 'block';
+                        outputContent.textContent = 'Running: ' + (message.message || 'Processing request...');
+                        
+                        // Update styling
+                        outputStatus.className = 'output-status status-running';
+                    } else if (message.status === 'success') {                        // Process completed successfully
+                        getStatusButton.disabled = false;
+                        getLogsButton.disabled = false;
+                        loadingIndicator.style.display = 'none';
+                        outputContent.textContent = 'Completed: ' + (message.message || 'Process completed successfully.');
+                        
+                        // Update styling
+                        outputStatus.className = 'output-status status-success';
+                          // Check if we have build data that can be opened in browser
+                        if (message.data && message.data.hasLink) {
+                            // Clear any previous buttons
+                            const existingButtons = outputStatus.querySelectorAll('button');
+                            existingButtons.forEach(btn => btn.remove());
+                            
+                            // Create button container for better layout
+                            const buttonContainer = document.createElement('div');
+                            buttonContainer.className = 'button-container';
+                            buttonContainer.style.marginTop = '10px';
+                            buttonContainer.style.display = 'flex';
+                            buttonContainer.style.gap = '10px';
+                            
+                            // Add a button to open in browser
+                            const openButton = document.createElement('button');
+                            openButton.textContent = 'Open in Browser';
+                            openButton.className = 'btn-primary';
+                            openButton.addEventListener('click', () => {
+                                vscode.postMessage({
+                                    command: 'openBuildInBrowser',
+                                    jobPath: message.data.jobPath,
+                                    buildNumber: message.data.buildNumber
+                                });
+                            });
+                            buttonContainer.appendChild(openButton);
+                            
+                            // Add retry button if build can be retried
+                            if (message.data.canRetry) {
+                                const retryButton = document.createElement('button');
+                                retryButton.textContent = 'Retry Build';
+                                retryButton.className = 'btn-secondary';
+                                retryButton.addEventListener('click', () => {
+                                    vscode.postMessage({
+                                        command: 'retryBuild',
+                                        jobPath: message.data.jobPath,
+                                        buildNumber: message.data.buildNumber
+                                    });
+                                });
+                                buttonContainer.appendChild(retryButton);
+                            }
+                            
+                            // Add the button container
+                            outputStatus.appendChild(buttonContainer);
+                        }
+                    } else if (message.status === 'error') {
+                        // Process encountered an error
+                        getStatusButton.disabled = false;
+                        getLogsButton.disabled = false;
+                        loadingIndicator.style.display = 'none';
+                        outputContent.textContent = 'Error: ' + (message.message || 'Unknown error');
+                        
+                        // Update styling
+                        outputStatus.className = 'output-status status-error';
+                    }
+                    break;
+            }
+        });
+    </script>
+</body>
+</html>

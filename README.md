@@ -13,7 +13,7 @@ This extension provides three different agent sidebars, each with specialized fu
 - **Error Handling**: Clearly see error messages if execution fails
 - **Notifications**: Get notified when execution completes
 
-### Coder & Documentation Bot
+### Dev Bot
 - **File Selection**: Select a text file that contains stories/requirements
 - **Options Selection**: Choose from code generation, unit tests, and documentation
 - **Generation**: Click the Generate button to create the selected outputs
@@ -28,7 +28,7 @@ This extension provides three different agent sidebars, each with specialized fu
 
 1. Click on one of the three agent icons in the Activity Bar:
    - Jira Story Bot icon
-   - Coder & Documentation Bot icon
+   - Dev Bot icon
    - Jenkins Agent icon
 
 ### Jira Story Bot
@@ -37,9 +37,9 @@ This extension provides three different agent sidebars, each with specialized fu
 3. Choose an output folder when prompted
 4. View the script output in the panel below
 5. See notifications when execution completes
-6. Optional: Configure custom scripts via the "Show Configuration" option
+6. Optional: Configure a custom script by clicking the gear icon (⚙️) next to the heading
 
-### Coder & Documentation Bot
+### Dev Bot
 1. Click "Select File" to choose a text file with stories/requirements
 2. Check/uncheck the desired output types:
    - Code Generation
@@ -48,7 +48,7 @@ This extension provides three different agent sidebars, each with specialized fu
 3. Click "Generate" to process the file
 4. Choose an output folder when prompted
 5. View the processing status in the panel below
-6. Optional: Configure custom scripts via the "Show Configuration" option
+6. Optional: Configure a custom script by clicking the gear icon (⚙️) next to the heading
 
 ## Example Inputs
 
@@ -71,7 +71,7 @@ This extension provides the following configuration options:
 | Setting | Description |
 |---------|-------------|
 | `jiraStoryBot.scriptPath` | Absolute path to a custom Python script for the Jira Story Bot. If not set, the default built-in script will be used. |
-| `coderBot.scriptPath` | Absolute path to a custom Python script for the Coder & Documentation Bot. If not set, the default built-in script will be used. |
+| `coderBot.scriptPath` | Absolute path to a custom Python script for the Dev Bot. If not set, the default built-in script will be used. |
 
 ### Configuration Methods
 
@@ -79,21 +79,21 @@ You can configure the script paths in two ways:
 
 #### Method 1: Using Settings UI
 1. Open VS Code settings (File > Preferences > Settings)
-2. Search for "Jira Story Bot" or "Coder Bot"
+2. Search for "Jira Story Bot" or "Dev Bot" 
 3. Enter the absolute path to your custom Python script
 4. The changes will take effect immediately
 
-#### Method 2: Using the In-App Configuration UI
-1. Open the respective agent sidebar (Jira Story Bot or Coder & Documentation Bot)
-2. Click "Show Configuration" at the bottom of the sidebar
-3. Enter the script path or use the "Browse" button to select a file
-4. Click "Save" to apply the changes
-5. Use "Reset to Default" to revert to the built-in script
+#### Method 2: Using the Settings Gear Icon
+1. Open the respective agent sidebar (Jira Story Bot or Dev Bot)
+2. Click the gear icon (⚙️) next to the heading
+3. This will open the VS Code settings directly to the relevant configuration
+4. Enter the absolute path to your custom Python script
+5. The changes will take effect immediately
 
 ### Script Requirements
 
 - **Jira Story Bot Script**: Should accept two arguments: the input text and the output file path
-- **Coder & Documentation Bot Script**: Should accept the input file path, output prefix, and option flags
+- **Dev Bot Script**: Should accept the input file path, output prefix, and option flags
 
 ## Development
 

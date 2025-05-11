@@ -23,7 +23,22 @@
         "coderBot.scriptPath": {
           "type": "string",
           "default": "",
-          "description": "Absolute path to the Python script for Coder & Documentation Bot. If not set, uses the default script."
+          "description": "Absolute path to the Python script for Dev Bot. If not set, uses the default script."
+        },
+        "jenkinsAgent.baseUrl": {
+          "type": "string",
+          "default": "http://localhost:8080",
+          "description": "Base URL for your Jenkins server."
+        },
+        "jenkinsAgent.authToken": {
+          "type": "string",
+          "default": "",
+          "description": "Authentication token for Jenkins API access."
+        },
+        "jenkinsAgent.jobPaths": {
+          "type": "array",
+          "default": [],
+          "description": "List of job paths to monitor. Example: job/my-project/job/main"
         }
       }
     },
@@ -39,7 +54,7 @@
       },
       {
         "command": "agents.openCoderView",
-        "title": "Open Coder and Documentation Bot",
+        "title": "Open Dev Bot",
         "icon": "$(code)"
       },
       {
@@ -61,7 +76,7 @@
         },
         {
           "id": "coder-sidebar",
-          "title": "Coder & Documentation",
+          "title": "Dev Bot",
           "icon": "resources/icons/coder.svg"
         },
         {
@@ -82,7 +97,7 @@
       "coder-sidebar": [
         {
           "id": "coder-view",
-          "name": "Coder & Documentation Bot",
+          "name": "Dev Bot",
           "type": "webview"
         }
       ],
@@ -123,14 +138,17 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.100.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
+    "@types/vscode": "^1.100.0",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
     "@typescript-eslint/parser": "^8.31.1",
-    "eslint": "^9.25.1",
-    "typescript": "^5.8.3",
     "@vscode/test-cli": "^0.0.10",
-    "@vscode/test-electron": "^2.5.2"
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^9.25.1",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "axios": "^1.9.0"
   }
 }

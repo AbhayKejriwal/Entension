@@ -11,6 +11,29 @@ export function getNonce() {
 }
 
 /**
+ * Loads an HTML template from a file and replaces placeholders
+ * @param templatePath Path to the HTML template file
+ * @param replacements Object with placeholder values to replace
+ * @returns Processed HTML string
+ */
+import * as fs from 'fs';
+import * as path from 'path';
+
+export function loadHtmlTemplate(templatePath: string, replacements: Record<string, string>): string {
+    // Read the template file
+    const templateContent = fs.readFileSync(templatePath, 'utf8');
+    
+    // Replace all placeholders with their corresponding values
+    let processedHtml = templateContent;
+    for (const [key, value] of Object.entries(replacements)) {
+        const placeholder = `{{${key}}}`;
+        processedHtml = processedHtml.replace(new RegExp(placeholder, 'g'), value);
+    }
+    
+    return processedHtml;
+}
+
+/**
  * Common interface for process status events
  */
 export interface ProcessStatus {
