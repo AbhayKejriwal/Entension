@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """
 Coder & Documentation Bot script.
-This script generates code, unit tests, and/or documentation based on input stories.
+This script generates unit tests and/or documentation based on source directory.
 """
 
 import sys
 import time
 import os
 import argparse
+import glob
 
 def main():
-    parser = argparse.ArgumentParser(description='Generate code, tests, and documentation from stories.')
-    parser.add_argument('input_file', help='Path to the input file containing stories')
+    parser = argparse.ArgumentParser(description='Generate tests and documentation from source directory.')
+    parser.add_argument('source_dir', help='Path to the source directory')
     parser.add_argument('output_prefix', help='Prefix for output files')
-    parser.add_argument('--code-gen', action='store_true', help='Generate code')
     parser.add_argument('--unit-test', action='store_true', help='Generate unit tests')
     parser.add_argument('--docs', action='store_true', help='Generate documentation')
     
@@ -21,32 +21,39 @@ def main():
     args = parser.parse_args()
     
     try:
-        # Read the input file
-        with open(args.input_file, 'r') as file:
-            content = file.read()
+        # Verify source directory exists
+        if not os.path.isdir(args.source_dir):
+            print(f"Error: Source directory does not exist: {args.source_dir}")
+            return 1
             
-        print(f"Processing file: {args.input_file}")
-        print(f"Selected options: Code Gen: {args.code_gen}, Unit Tests: {args.unit_test}, Docs: {args.docs}")
+        print(f"Processing source directory: {args.source_dir}")
+        print(f"Selected options: Unit Tests: {args.unit_test}, Docs: {args.docs}")
+        
+        # Find all Python files in the source directory (recursive)
+        python_files = glob.glob(os.path.join(args.source_dir, "**", "*.py"), recursive=True)
+        python_files += glob.glob(os.path.join(args.source_dir, "**", "*.js"), recursive=True)
+        python_files += glob.glob(os.path.join(args.source_dir, "**", "*.ts"), recursive=True)
+        
+        if not python_files:
+            print(f"No source files found in {args.source_dir}")
+            return 1
+            
+        print(f"Found {len(python_files)} source files to process")
         
         # Create outputs based on selected options
         outputs = []
         
-        if args.code_gen:
-            code_output = generate_code(content)
-            code_file = f"{args.output_prefix}_code.py"
-            with open(code_file, 'w') as file:
-                file.write(code_output)
-            outputs.append(('code', code_file))
-                
         if args.unit_test:
-            test_output = generate_tests(content)
+            print("Generating unit tests...")
+            test_output = generate_tests_from_dir(args.source_dir, python_files)
             test_file = f"{args.output_prefix}_tests.py"
             with open(test_file, 'w') as file:
                 file.write(test_output)
             outputs.append(('tests', test_file))
                 
         if args.docs:
-            docs_output = generate_docs(content)
+            print("Generating documentation...")
+            docs_output = generate_docs_from_dir(args.source_dir, python_files)
             docs_file = f"{args.output_prefix}_docs.md"
             with open(docs_file, 'w') as file:
                 file.write(docs_output)
@@ -66,92 +73,74 @@ def main():
         print(f"Error: {str(e)}")
         return 1
 
-def generate_code(content):
-    """Generate code based on input content."""
+def generate_tests_from_dir(source_dir, source_files):
+    """Generate unit tests based on source files in directory."""
     # This is a dummy implementation
-    return f"""#!/usr/bin/env python3
-# Generated code based on requirements
-# Generated on: {time.strftime('%Y-%m-%d %H:%M:%S')}
-
-class StoryImplementation:
-    def __init__(self):
-        self.stories = []
-        
-    def add_story(self, story):
-        self.stories.append(story)
-        return len(self.stories)
-        
-    def get_stories(self):
-        return self.stories
-        
-# Story content (first few lines):
-# {content.replace(chr(10), chr(10)+'# ')[:200]}...
-"""
-
-def generate_tests(content):
-    """Generate unit tests based on input content."""
-    # This is a dummy implementation
+    file_list = '\n'.join([f"- {os.path.relpath(f, source_dir)}" for f in source_files[:10]])
+    if len(source_files) > 10:
+        file_list += f"\n- ... and {len(source_files) - 10} more files"
+    
     return f"""#!/usr/bin/env python3
 # Generated unit tests
 # Generated on: {time.strftime('%Y-%m-%d %H:%M:%S')}
+# Source directory: {source_dir}
 
 import unittest
 
-class TestStoryImplementation(unittest.TestCase):
+class TestGeneratedFromSourceDir(unittest.TestCase):
     def setUp(self):
-        from story_implementation import StoryImplementation
-        self.implementation = StoryImplementation()
+        self.source_dir = "{source_dir}"
     
-    def test_add_story(self):
-        result = self.implementation.add_story("Test story")
-        self.assertEqual(result, 1)
+    def test_sample(self):
+        # This is a placeholder test
+        self.assertTrue(True, "Sample test passes")
         
-    def test_get_stories(self):
-        self.implementation.add_story("Test story")
-        stories = self.implementation.get_stories()
-        self.assertEqual(len(stories), 1)
+    def test_source_dir_exists(self):
+        import os
+        self.assertTrue(os.path.exists(self.source_dir), 
+                       f"Source directory exists: {{self.source_dir}}")
         
+    # The following tests would be generated based on the analyzed source files:
+    # Files analyzed:
+{file_list}
+
 if __name__ == '__main__':
     unittest.main()
 """
 
-def generate_docs(content):
-    """Generate documentation based on input content."""
+def generate_docs_from_dir(source_dir, source_files):
+    """Generate documentation based on source files in directory."""
     # This is a dummy implementation
-    return f"""# Story Implementation Documentation
+    file_list = '\n'.join([f"- {os.path.relpath(f, source_dir)}" for f in source_files[:10]])
+    if len(source_files) > 10:
+        file_list += f"\n- ... and {len(source_files) - 10} more files"
+    
+    return f"""# Documentation Generated from Source Directory
 
 Generated on: {time.strftime('%Y-%m-%d %H:%M:%S')}
 
 ## Overview
 
-This documentation covers the implementation of the stories described in the input file.
+This documentation covers the code in the source directory: `{source_dir}`
 
-## Requirements
+## Files Analyzed
 
-The following requirements were extracted from the input file:
+The following files were analyzed to generate this documentation:
 
-```
-{content[:200]}...
-```
+{file_list}
 
-## Classes
+## Code Structure
 
-### StoryImplementation
-
-The main class for handling stories.
-
-#### Methods
-
-- `add_story(story)`: Adds a new story to the collection
-- `get_stories()`: Returns all stories
+This section would contain documentation about the code structure, classes, and functions.
 
 ## Usage Examples
 
-```python
-implementation = StoryImplementation()
-implementation.add_story("User can login")
-stories = implementation.get_stories()
-```
+This section would contain usage examples extracted from the code.
+
+## Dependencies
+
+This section would list dependencies detected in the code.
+
 """
 
 if __name__ == "__main__":

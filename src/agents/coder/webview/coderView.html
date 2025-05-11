@@ -228,53 +228,96 @@
     </style>
 </head>
 <body>
-    <div class="container">        <div class="section">
+    <div class="container">
+        <!-- Code Generation Section -->
+        <div class="section">
             <div class="section-header">
-                <h3 class="section-title">Dev Bot <span class="icon-button" id="settings-button" title="Open Settings">⚙️</span></h3>
+                <h3 class="section-title">Code Generation <span class="icon-button" id="settings-button" title="Open Settings">⚙️</span></h3>
             </div>
             
             <div class="input-container">
                 <div class="file-selector">
-                    <div id="file-path" class="file-path">No file selected</div>
-                    <button id="select-file-button">Select File</button>
+                    <div id="code-gen-path" class="file-path">No file selected</div>
+                    <button id="select-code-file-button">Select File</button>
+                </div>
+                
+                <p>Code generation functionality coming soon...</p>
+                
+                <button id="execute-code-gen-button" disabled>Generate Code</button>
+            </div>
+        </div>
+        
+        <!-- Documentation and Testing Section -->
+        <div class="section">
+            <div class="section-header">
+                <h3 class="section-title">Documentation & Tests</h3>
+            </div>
+            
+            <div class="input-container">
+                <div class="form-field">
+                    <label for="source-dir">Source Directory</label>
+                    <div class="file-selector">
+                        <div id="source-dir-path" class="file-path">No directory selected</div>
+                        <button id="select-source-dir-button">Select Source</button>
+                    </div>
+                </div>
+                
+                <div class="form-field">
+                    <label for="destination-dir">Destination Directory</label>
+                    <div class="file-selector">
+                        <div id="destination-dir-path" class="file-path">No directory selected</div>
+                        <button id="select-destination-dir-button">Select Destination</button>
+                    </div>
                 </div>
                 
                 <div class="checkbox-container">
                     <div class="checkbox-item">
-                        <input type="checkbox" id="code-gen" checked>
-                        <label for="code-gen">Code Generation</label>
+                        <input type="checkbox" id="unit-test" checked>
+                        <label for="unit-test">Generate Unit Tests</label>
                     </div>
                     <div class="checkbox-item">
-                        <input type="checkbox" id="unit-test">
-                        <label for="unit-test">Unit Test Cases</label>
-                    </div>
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="docs">
-                        <label for="docs">Documentation</label>
+                        <input type="checkbox" id="docs" checked>
+                        <label for="docs">Generate Documentation</label>
                     </div>
                 </div>
                 
-                <button id="execute-button" disabled>Generate</button>
-            </div>        </div>
-          <div class="section">
+                <button id="execute-docs-tests-button" disabled>Generate Documentation & Tests</button>
+            </div>
+        </div>
+          
+        <!-- Output Section -->
+        <div class="section">
             <div class="section-header">
                 <div class="actions">
                     <span id="loading-indicator" style="display:none"><div class="loading"></div></span>
                 </div>
-            </div><div class="output">
+            </div>
+            <div class="output">
                 <div class="output-status" id="output-status">
-                    <div class="output-content" id="output-content">Ready: Select a file and options, then click Generate.</div>
+                    <div class="output-content" id="output-content">Ready: Select options above and click the appropriate Generate button.</div>
                 </div>
             </div>
         </div>
     </div>
     <script nonce="{{nonce}}">
-        const vscode = acquireVsCodeApi();        const filePath = document.getElementById('file-path');
-        const selectFileButton = document.getElementById('select-file-button');
-        const codeGenCheckbox = document.getElementById('code-gen');
+        const vscode = acquireVsCodeApi();
+        
+        // Code Generation Elements
+        const codeGenPath = document.getElementById('code-gen-path');
+        const selectCodeFileButton = document.getElementById('select-code-file-button');
+        const executeCodeGenButton = document.getElementById('execute-code-gen-button');
+        
+        // Documentation & Tests Elements
+        const sourceDirPath = document.getElementById('source-dir-path');
+        const destinationDirPath = document.getElementById('destination-dir-path');
+        const selectSourceDirButton = document.getElementById('select-source-dir-button');
+        const selectDestinationDirButton = document.getElementById('select-destination-dir-button');
         const unitTestCheckbox = document.getElementById('unit-test');
         const docsCheckbox = document.getElementById('docs');
-        const executeButton = document.getElementById('execute-button');        const outputContent = document.getElementById('output-content');
+        const executeDocsTestsButton = document.getElementById('execute-docs-tests-button');
+        
+        // Common Elements
+        const outputContent = document.getElementById('output-content');
         const outputStatus = document.getElementById('output-status');
         const loadingIndicator = document.getElementById('loading-indicator');
         const settingsButton = document.getElementById('settings-button');
@@ -286,29 +329,70 @@
             });
         });
         
-        // Select file button
-        selectFileButton.addEventListener('click', () => {
+        // Code Generation - Select file button
+        selectCodeFileButton.addEventListener('click', () => {
             vscode.postMessage({
-                command: 'selectFile'
+                command: 'selectFile',
+                section: 'codeGen'
             });
         });
         
-        // Execute button
-        executeButton.addEventListener('click', () => {
-            // Get selected options
-            const options = {
-                codeGen: codeGenCheckbox.checked,
-                unitTest: unitTestCheckbox.checked,
-                docs: docsCheckbox.checked
-            };
-              // Disable button and show loading            executeButton.disabled = true;
+        // Execute code generation button
+        executeCodeGenButton.addEventListener('click', () => {
+            // Disable button and show loading
+            executeCodeGenButton.disabled = true;
             loadingIndicator.style.display = 'block';
-            outputContent.textContent = 'Executing: Generating selected outputs...';
+            outputContent.textContent = 'Executing: Generating code...';
+            outputStatus.className = 'output-status status-running';
             
             // Send message
             vscode.postMessage({
                 command: 'executeCommand',
-                options: options
+                options: {
+                    actionType: 'codeGen'
+                }
+            });
+        });
+        
+        // Documentation & Tests - Select source directory button
+        selectSourceDirButton.addEventListener('click', () => {
+            vscode.postMessage({
+                command: 'selectDirectory',
+                section: 'sourceDir'
+            });
+        });
+        
+        // Documentation & Tests - Select destination directory button
+        selectDestinationDirButton.addEventListener('click', () => {
+            vscode.postMessage({
+                command: 'selectDirectory',
+                section: 'destinationDir'
+            });
+        });
+        
+        // Execute documentation and tests button
+        executeDocsTestsButton.addEventListener('click', () => {
+            // Check if at least one option is selected
+            if (!unitTestCheckbox.checked && !docsCheckbox.checked) {
+                outputContent.textContent = 'Error: Select at least one option (Documentation or Unit Tests).';
+                outputStatus.className = 'output-status status-error';
+                return;
+            }
+            
+            // Disable button and show loading
+            executeDocsTestsButton.disabled = true;
+            loadingIndicator.style.display = 'block';
+            outputContent.textContent = 'Executing: Generating documentation and tests...';
+            outputStatus.className = 'output-status status-running';
+            
+            // Send message
+            vscode.postMessage({
+                command: 'executeCommand',
+                options: {
+                    actionType: 'docsAndTests',
+                    unitTest: unitTestCheckbox.checked,
+                    docs: docsCheckbox.checked
+                }
             });
         });
         
@@ -317,14 +401,33 @@
             const message = event.data;
             switch (message.command) {
                 case 'fileSelected':
-                    // Update file path display
-                    filePath.textContent = message.path || 'No file selected';
-                    // Enable/disable execute button based on file selection
-                    executeButton.disabled = !message.path;
+                    if (message.section === 'codeGen') {
+                        // Update code generation file path display
+                        codeGenPath.textContent = message.path || 'No file selected';
+                        // Enable/disable execute button based on file selection
+                        executeCodeGenButton.disabled = !message.path;
+                    }
                     break;
-                case 'processUpdate':                    if (message.status === 'running') {
+                    
+                case 'directorySelected':
+                    if (message.section === 'sourceDir') {
+                        // Update source directory path display
+                        sourceDirPath.textContent = message.path || 'No directory selected';
+                    } else if (message.section === 'destinationDir') {
+                        // Update destination directory path display
+                        destinationDirPath.textContent = message.path || 'No directory selected';
+                    }
+                    
+                    // Enable/disable execute button based on both directories being selected
+                    executeDocsTestsButton.disabled = !(sourceDirPath.textContent !== 'No directory selected' && 
+                                                        destinationDirPath.textContent !== 'No directory selected');
+                    break;
+                    
+                case 'processUpdate':
+                    if (message.status === 'running') {
                         // Process is still running
-                        executeButton.disabled = true;
+                        executeCodeGenButton.disabled = true;
+                        executeDocsTestsButton.disabled = true;
                         loadingIndicator.style.display = 'block';
                         outputContent.textContent = 'Running: ' + (message.message || 'Generating outputs...');
                         
@@ -332,7 +435,9 @@
                         outputStatus.className = 'output-status status-running';
                     } else if (message.status === 'success') {
                         // Process completed successfully
-                        executeButton.disabled = false;
+                        executeCodeGenButton.disabled = codeGenPath.textContent === 'No file selected';
+                        executeDocsTestsButton.disabled = !(sourceDirPath.textContent !== 'No directory selected' && 
+                                                            destinationDirPath.textContent !== 'No directory selected');
                         loadingIndicator.style.display = 'none';
                         outputContent.textContent = 'Completed: ' + (message.message || 'Generation completed successfully.');
                         
@@ -340,7 +445,9 @@
                         outputStatus.className = 'output-status status-success';
                     } else if (message.status === 'error') {
                         // Process encountered an error
-                        executeButton.disabled = false;
+                        executeCodeGenButton.disabled = codeGenPath.textContent === 'No file selected';
+                        executeDocsTestsButton.disabled = !(sourceDirPath.textContent !== 'No directory selected' && 
+                                                            destinationDirPath.textContent !== 'No directory selected');
                         loadingIndicator.style.display = 'none';
                         outputContent.textContent = 'Error: ' + (message.message || 'Unknown error');
                         
@@ -348,7 +455,6 @@
                         outputStatus.className = 'output-status status-error';
                     }
                     break;
-                // No need for configUpdate case anymore
             }
         });
     </script>
