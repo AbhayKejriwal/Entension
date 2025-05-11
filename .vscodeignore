@@ -1,6 +1,5 @@
 .vscode/**
 .vscode-test/**
-src/**
 .gitignore
 .yarnrc
 vsc-extension-quickstart.md
@@ -9,3 +8,6 @@ vsc-extension-quickstart.md
 **/*.map
 **/*.ts
 **/.vscode-test.*
+# Ensure HTML and Python files in src/ are included in the VSIX
+!src/**/*.html
+!src/**/*.py
